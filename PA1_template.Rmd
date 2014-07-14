@@ -1,0 +1,127 @@
+---
+title: "Reproducible Research - Peer 1"
+author: "Bryan Travis Smith"
+date: "Sunday, July 13, 2014"
+output: html_document
+---
+
+The first step of this assignment is to lead the dataset we are suppose to analyze.
+
+```{r}
+        activity <- read.csv("activity.csv")
+        head(activity)
+        tail(activity)
+```
+
+The time steps contain a number of steps in the interval of time or NA.   The date is the date of the measurement, and the interval is the time period for that particlar day.  The interval rests each day.
+
+The first step (HAHAHA!!) is to remove all the NA data because our questions are concerned with steps.
+
+```{r}
+        activityRmNa <- activity[!is.na(activity$steps),]
+        head(activityRmNa)
+        tail(activityRmNa)
+
+```
+
+Now lets turn the date into a factor and find the mean number of steps.
+
+```{r}
+        activityRmNa$date <- factor(activityRmNa$date)
+        steps <- numeric()
+        i = 1
+        for( date in levels(activityRmNa$date) ){
+                steps[i] <- sum(activityRmNa[activityRmNa$date==date,]$steps)
+                i = i + 1
+        }
+        hist(steps,breaks=10,xlab="Number of Steps Per Day")
+        summary(steps) 
+        
+```
+
+The mean number of steps is `r mean(steps)` per day.  The median number of steps is `r median(steps)` per day.
+
+A averaged time serieis plot of time interval is given below.
+
+```{r}
+        activityRmNa$interval <- factor(activityRmNa$interval)
+        meanSteps <- numeric()
+        intervals <- numeric()
+        i = 1
+        for( int in levels(activityRmNa$interval) ){
+                meanSteps[i] <- mean(activityRmNa[activityRmNa$interval==int,]$steps)
+                intervals[i] <- as.numeric(int)
+                i = i + 1
+        }
+        df <- data.frame(interval=intervals,avgSteps = meanSteps)
+        library(ggplot2)
+        qplot(interval,avgSteps,data=df,geom="line",xlab="Minutes Into Day (minutes)", ylab="Average Number of Steps")
+
+```
+
+The time interval with the maximum average steps is in interval `r df$interval[which.max(df$avgSteps)]` minutes.
+
+Lets replace the NA values with mean value for that time.
+
+```{r}
+        for( i in 1:length(activity$steps) ){
+                if( is.na(activity[i,]$steps) ){
+                        activity[i,]$steps = df[df$interval==activity[i,]$interval,]$avgSteps
+                }
+        }
+         head(activity)
+         tail(activity)
+        
+```
+
+The new histograms and summarys are as follows:
+
+```{r}
+
+        activity$date <- factor(activity$date)
+        steps <- numeric()
+        i = 1
+        for( date in levels(activity$date) ){
+                steps[i] <- sum(activity[activity$date==date,]$steps)
+                i = i + 1
+        }
+        hist(steps,breaks=10,xlab="Number of Steps Per Day")
+        summary(steps) 
+```
+
+The new mean number of steps with the imputed data is `r mean(steps)` per day.  The new median number of steps is `r median(steps)` per day.  These are both very close to the originals.
+
+Now we will look at the trends of the data over weekdays and weekends.
+
+```{r}
+        weekend = weekdays(as.Date(activity$date))=="Sunday" | weekdays(as.Date(activity$date)) == "Saturday"
+
+        weekdayActivity <- activity[!weekend,]
+        weekendActivity <- activity[weekend,]
+       
+        weekdayActivity$interval <- factor(weekdayActivity$interval)
+        weekdayMeanSteps <- numeric()
+        intervals <- numeric()
+        i = 1
+        for( int in levels(weekdayActivity$interval) ){
+                weekdayMeanSteps[i] <- mean(weekdayActivity[weekdayActivity$interval==int,]$steps)
+                intervals[i] <- as.numeric(int)
+                i = i + 1
+        }
+        weekdayDf <- data.frame(interval=intervals,avgSteps = weekdayMeanSteps)
+
+        weekendActivity$interval <- factor(weekendActivity$interval)
+        weekendMeanSteps <- numeric()
+        intervals <- numeric()
+        i = 1
+        for( int in levels(weekendActivity$interval) ){
+                weekendMeanSteps[i] <- mean(weekendActivity[weekendActivity$interval==int,]$steps)
+                intervals[i] <- as.numeric(int)
+                i = i + 1
+        }
+        weekendDf <- data.frame(interval=intervals,avgSteps = weekendMeanSteps)
+        library(ggplot2)
+        par(mfrow=c(2,1))
+        plot(weekdayDf$interval,weekdayDf$avgSteps,type="l",ylab="Number of Steps",xlab="")
+        plot(weekendDf$interval,weekendDf$avgSteps,type="l",ylab = "Number of Steps",xlab="Time(minutes") 
+```
